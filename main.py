@@ -1,4 +1,4 @@
-from flask import Flask, request,flash,redirect, url_for
+from flask import Flask, request,flash,redirect
 from werkzeug.utils import secure_filename
 from service.GaitService import GaitService
 from session.azureSession import AzureSession
@@ -8,8 +8,8 @@ import threading
 import os
 
 
-UPLOAD_FOLDER = os.path.join(os.getcwd(),os.path.join('WDC2/data','videos'))
-ALLOWED_EXTENSIONS = {'mov', 'mp4','gif'}
+UPLOAD_FOLDER = os.path.join(os.getcwd(),'WDC2/data')
+ALLOWED_EXTENSIONS = {'mov', 'mp4','gif', 'jpeg','jpg','png'}
 
 app = Flask(__name__,
             static_url_path='/static', 
@@ -33,7 +33,7 @@ def submit():
 
     if 'file' not in request.files:
         flash('No file part')
-        return {'Status':'file not found'}
+        return {'status':'file not found'}
 
     file = request.files['file']
     if file.filename == '':
@@ -47,9 +47,9 @@ def submit():
         service = GaitService(azureSession, mongoSession, file.filename)
         t1 = threading.Thread(target=service.run)
         t1.start()
-        return {'Status': 'Success','_id': str(emptyDocId)}
+        return {'status': 'Success','_id': str(emptyDocId)}
     else:
-        return {'Status': 'File format not allowed'}
+        return {'status': 'File format not allowed'}
 
 
 @app.route('/result', methods=['GET', 'POST'])
@@ -60,13 +60,17 @@ def result():
         return {'Status': 'Processing'}
     doc = mongoSession.getDoc(data['_id']) 
     doc['_id']= data['_id']
-    mongoSession.clearSession()
+    doc['leftLeg'] = round(doc['leftLeg'],2)
+    doc['rightLeg'] = round(doc['rightLeg'],2)
 
-    return {'Status': 'Completed','Document': doc}
+    mongoSession.clearSession()
+    
+
+    return {'status': 'Completed','result': doc}
 
 @app.route('/', methods=['GET'])
 def dummy():
-    return {'Status': 'Success'}
+    return {'status': 'success'}
 
 if __name__=="__main__":
-    app.run(host="0.0.0.0")
+    app.run(host="0.0.0.0")s
